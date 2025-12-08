@@ -1,0 +1,11 @@
+demucs
+torchcodec
+ffmpeg-python
+soundfile
+
+#chord detector
+crema
+librosa
+numpy
+scipy
+tensorflow
