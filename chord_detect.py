@@ -1,4 +1,3 @@
-import crema
 import librosa
 import numpy as np
 import json
@@ -7,19 +6,22 @@ from pathlib import Path
 
 
 
-def get_chord_sequence(audio_path, chunk_dur=60.0, overlap=2.0, output_format='json'):
+def get_chord_sequence(audio_path, chunk_dur=60.0, overlap=2.0, output_format='json', output_dir=None):
+    import crema  
+    model = crema.models.chord.ChordModel()
+
     y, sr=librosa.load(audio_path)
     dur=librosa.get_duration(y=y, sr=sr)
     if dur<=60.0:
-        chord_labels=crema.models.chord.predict(audio_path)
-        chords=_extract_chords(chord_labels, time_offset=0.0)
+        chord_data = model.predict(audio_path)
+        chords=_extract_chords(chord_data, time_offset=0.0)
     else:
-        chords=_process_chunks(y, sr, chunk_dur, overlap)
-    output_path=_save_chords(chords, audio_path, output_format)
+        chords=_process_chunks(y, sr, chunk_dur, overlap, model)
+    output_path=_save_chords(chords, audio_path, output_format, output_dir)
     print(f"Chords saved in : {output_path}")
     return chords
 
-def _process_chunks(y, sr, chunk_duration, overlap):
+def _process_chunks(y, sr, chunk_duration, overlap, model):
     """Process audio in overlapping chunks."""
     chords = []
     chunk_samples = int(chunk_duration * sr)
@@ -39,8 +41,8 @@ def _process_chunks(y, sr, chunk_duration, overlap):
             sf.write(tmp_file.name, chunk_y, sr)
 
             # Predict chords for this chunk
-            chord_labels = crema.models.chord.predict(tmp_file.name)
-            chunk_chords = _extract_chords(chord_labels, time_offset)
+            chord_data = model.predict(tmp_file.name)
+            chunk_chords = _extract_chords(chord_data, time_offset)
 
             # Remove chords in overlap region (except for last chunk)
             if i < num_chunks - 1:
@@ -92,10 +94,13 @@ def _merge_consecutive_chords(chords):
     return merged
 
 
-def _save_chords(chords, audio_path, output_format='json'):
+def _save_chords(chords, audio_path, output_format='json', output_dir=None):
     """Save chord sequence to file."""
     audio_path = Path(audio_path)
-    output_dir = audio_path.parent / f"{audio_path.stem}_output"
+    if output_dir is None:
+        output_dir = audio_path.parent / f"{audio_path.stem}_output"
+    else:
+        output_dir = Path(output_dir)
     output_dir.mkdir(exist_ok=True)
 
     if output_format == 'json':
