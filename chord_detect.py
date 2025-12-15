@@ -3,11 +3,12 @@ import numpy as np
 import json
 import csv
 from pathlib import Path
+from hmm_chord_trainer import ChordHMM
 
 
 
-def get_chord_sequence(audio_path, chunk_dur=60.0, overlap=2.0, output_format='json', output_dir=None):
-    import crema  
+def get_chord_sequence(audio_path, chunk_dur=60.0, overlap=2.0, output_format='json', output_dir=None, use_hmm=True, hmm_model_path='models/chord_hmm.pkl'):
+    import crema
     model = crema.models.chord.ChordModel()
 
     y, sr=librosa.load(audio_path)
@@ -17,6 +18,11 @@ def get_chord_sequence(audio_path, chunk_dur=60.0, overlap=2.0, output_format='j
         chords=_extract_chords(chord_data, time_offset=0.0)
     else:
         chords=_process_chunks(y, sr, chunk_dur, overlap, model)
+
+    # Apply HMM to fill uncertain chords
+    if use_hmm:
+        chords = _apply_hmm_correction(chords, hmm_model_path)
+
     output_path=_save_chords(chords, audio_path, output_format, output_dir)
     print(f"Chords saved in : {output_path}")
     return chords
@@ -92,6 +98,46 @@ def _merge_consecutive_chords(chords):
             merged.append(chord.copy())
 
     return merged
+
+
+def _apply_hmm_correction(chords, hmm_model_path):
+    hmm_model_path = Path(hmm_model_path)
+
+    if not hmm_model_path.exists():
+        print(f"Warning: HMM model not found at {hmm_model_path}. Skipping HMM correction.")
+        print("Train a model using: python train_hmm_from_dataset.py")
+        return chords
+
+    try:
+        # Load HMM model
+        hmm = ChordHMM()
+        hmm.load(hmm_model_path)
+
+        # Extract chord sequence and confidences
+        chord_labels = [c['chord'] for c in chords]
+        confidences = [c['confidence'] for c in chords]
+
+        # Count uncertain chords before
+        uncertain_before = sum(1 for c in chord_labels if c in ('X', 'N'))
+
+        # Fill uncertain chords
+        filled_labels = hmm.fill_uncertain_chords(chord_labels, confidences)
+
+        # Update chord data
+        for i, new_chord in enumerate(filled_labels):
+            if chords[i]['chord'] != new_chord:
+                chords[i]['chord'] = new_chord
+                chords[i]['hmm_corrected'] = True
+
+        # Count uncertain chords after
+        uncertain_after = sum(1 for c in filled_labels if c in ('X', 'N'))
+        print(f"HMM correction: {uncertain_before} uncertain chords -> {uncertain_after} uncertain chords")
+        print(f"Filled {uncertain_before - uncertain_after} uncertain chords")
+
+    except Exception as e:
+        print(f"Error applying HMM correction: {e}")
+
+    return chords
 
 
 def _save_chords(chords, audio_path, output_format='json', output_dir=None):
