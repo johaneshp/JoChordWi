@@ -18,6 +18,16 @@
 # Output directory
 output/
 
+# Models and datasets (too large for Git - users should train locally)
+models/
+*.pkl
+dataset/
+*.hdf5
+*.h5
+
+# Hugging Face cache
+.cache/
+
 # Python
 __pycache__/
 *.py[cod]
