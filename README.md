@@ -1,0 +1,2 @@
+This program uses demucs to separate vocals and instruments. Instrument 'others' from demucs, which contains instruments other than drums and bass is used to analyze the chord. Chord analysis is using CREMA. Then the chord that was identified as "X" is then improved using HMM model which was trained with Chordonomicon dataset, a dataset that contains 660000+ songs and its' chords.
+Improvement still needed for rock songs, since confidence that was produced <0.5. For slow or accoustic music, it detect accurately.
