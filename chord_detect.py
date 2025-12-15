@@ -118,7 +118,7 @@ def _apply_hmm_correction(chords, hmm_model_path):
         confidences = [c['confidence'] for c in chords]
 
         # Count uncertain chords before
-        uncertain_before = sum(1 for c in chord_labels if c in ('X', 'N'))
+        uncertain_before = sum(1 for c in chord_labels if c in ('X'))
 
         # Fill uncertain chords
         filled_labels = hmm.fill_uncertain_chords(chord_labels, confidences)
@@ -130,7 +130,7 @@ def _apply_hmm_correction(chords, hmm_model_path):
                 chords[i]['hmm_corrected'] = True
 
         # Count uncertain chords after
-        uncertain_after = sum(1 for c in filled_labels if c in ('X', 'N'))
+        uncertain_after = sum(1 for c in filled_labels if c in ('X'))
         print(f"HMM correction: {uncertain_before} uncertain chords -> {uncertain_after} uncertain chords")
         print(f"Filled {uncertain_before - uncertain_after} uncertain chords")
 
