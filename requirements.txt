@@ -11,6 +11,9 @@ crema>=0.2.0
 tensorflow>=2.10.0,<2.16.0
 keras>=2.10.0,<3.0.0
 
+# HMM chord completion (Chordonomicon dataset)
+datasets>=2.14.0
+
 # PyTorch for Demucs
 torch>=2.0.0
 torchaudio>=2.0.0
